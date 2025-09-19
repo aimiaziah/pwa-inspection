@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+@layer base {
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    line-height: 1.6;
+  }
+
+  /* Focus styles */
+  :focus {
+    outline: 2px solid #facc15;
+    outline-offset: 2px;
+  }
+
+  /* Selection */
+  ::selection {
+    background: #facc15;
+    color: #111111;
+  }
+}
+
+/* Print styles for inspection checklist */
+@media print {
+  /* Hide navigation and buttons when printing */
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Adjust layout for print */
+  .print\\:break-inside-avoid {
+    break-inside: avoid;
+  }
+
+  /* Ensure good contrast in print */
+  * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Page breaks */
+  .print\\:break-before-page {
+    break-before: page;
+  }
+}
