@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import BaseLayout from '@/layouts/BaseLayout';
 import { storage } from '@/utils/storage';
 
-// Types
-type RatingType = 'G' | 'A' | 'P' | 'I' | 'SIN' | 'SPS' | 'SWO' | null;
+type RatingType = 'PASS' | 'FAIL' | 'N/A' | null;
 type InspectionStatus =
   | 'draft'
   | 'submitted'
@@ -12,56 +11,57 @@ type InspectionStatus =
   | 'completed';
 type UserRole = 'inspector' | 'supervisor' | 'admin';
 
-interface ChecklistItem {
+interface FireExtinguisherItem {
   id: string;
   category: string;
   item: string;
   rating: RatingType;
   comments: string;
+  requiresAction: boolean;
 }
 
-interface AuditLog {
-  timestamp: string;
-  user: string;
-  action: string;
-  details: string;
-}
-
-interface InspectionData {
+interface FireExtinguisherData {
   id: string;
-  contractor: string;
+  building: string;
+  floor: string;
   location: string;
+  extinguisherType: string;
+  serialNumber: string;
+  manufacturerDate: string;
+  lastServiceDate: string;
+  nextServiceDue: string;
   inspectedBy: string;
-  date: string;
+  inspectionDate: string;
   status: InspectionStatus;
-  items: ChecklistItem[];
-  supervisorApproval?: {
-    approvedBy: string;
-    approvedAt: string;
-    comments: string;
-  };
-  adminApproval?: {
-    approvedBy: string;
-    approvedAt: string;
-    comments: string;
-  };
-  auditLog: AuditLog[];
+  items: FireExtinguisherItem[];
+  auditLog: Array<{
+    timestamp: string;
+    user: string;
+    action: string;
+    details: string;
+  }>;
   createdAt: string;
   savedAt?: string;
 }
 
-const ChecklistPage: React.FC = () => {
+const FireExtinguisherInspection: React.FC = () => {
   const [currentUser] = useState<{ name: string; role: UserRole }>({
     name: 'John Inspector',
     role: 'inspector',
   });
 
-  const [inspectionData, setInspectionData] = useState<InspectionData>({
+  const [inspectionData, setInspectionData] = useState<FireExtinguisherData>({
     id: Date.now().toString(),
-    contractor: '',
+    building: '',
+    floor: '',
     location: '',
+    extinguisherType: 'ABC Dry Chemical',
+    serialNumber: '',
+    manufacturerDate: '',
+    lastServiceDate: '',
+    nextServiceDue: '',
     inspectedBy: currentUser.name,
-    date: new Date().toISOString().split('T')[0],
+    inspectionDate: new Date().toISOString().split('T')[0],
     status: 'draft',
     createdAt: new Date().toISOString(),
     auditLog: [
@@ -69,161 +69,196 @@ const ChecklistPage: React.FC = () => {
         timestamp: new Date().toISOString(),
         user: currentUser.name,
         action: 'created',
-        details: 'Inspection record created',
+        details: 'Fire extinguisher inspection record created',
       },
     ],
     items: [
-      // Working Areas
-      { id: '1', category: 'WORKING AREAS', item: 'Housekeeping', rating: null, comments: '' },
+      // Physical Condition
+      {
+        id: '1',
+        category: 'PHYSICAL CONDITION',
+        item: 'Fire extinguisher is properly located and visible',
+        rating: null,
+        comments: '',
+        requiresAction: false,
+      },
       {
         id: '2',
-        category: 'WORKING AREAS',
-        item: 'Proper barrier/safety signs',
+        category: 'PHYSICAL CONDITION',
+        item: 'Access to fire extinguisher is unobstructed',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
-      { id: '3', category: 'WORKING AREAS', item: 'Lighting adequacy', rating: null, comments: '' },
+      {
+        id: '3',
+        category: 'PHYSICAL CONDITION',
+        item: 'Extinguisher is mounted securely on wall bracket or stand',
+        rating: null,
+        comments: '',
+        requiresAction: false,
+      },
       {
         id: '4',
-        category: 'WORKING AREAS',
-        item: 'Site layout arrangement',
+        category: 'PHYSICAL CONDITION',
+        item: 'Extinguisher shell is free of dents, rust, or corrosion',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
-      { id: '5', category: 'WORKING AREAS', item: 'Ventilation', rating: null, comments: '' },
+      {
+        id: '5',
+        category: 'PHYSICAL CONDITION',
+        item: 'Hose and nozzle are in good condition (no cracks or clogs)',
+        rating: null,
+        comments: '',
+        requiresAction: false,
+      },
       {
         id: '6',
-        category: 'WORKING AREAS',
-        item: 'Floor/ground/edge/opening condition',
+        category: 'PHYSICAL CONDITION',
+        item: 'Extinguisher has not been discharged or tampered with',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
+
+      // Labels and Signage
       {
         id: '7',
-        category: 'WORKING AREAS',
-        item: 'Escape/working route condition',
+        category: 'LABELS & SIGNAGE',
+        item: 'Instruction label is present and legible',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
       {
         id: '8',
-        category: 'WORKING AREAS',
-        item: 'Material storage/stacking',
+        category: 'LABELS & SIGNAGE',
+        item: 'NFPA rating label is present and legible',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
-
-      // Site Office
-      { id: '9', category: 'SITE OFFICE', item: 'Office Ergonomics', rating: null, comments: '' },
+      {
+        id: '9',
+        category: 'LABELS & SIGNAGE',
+        item: 'Maintenance tag/record is current and properly filled out',
+        rating: null,
+        comments: '',
+        requiresAction: false,
+      },
       {
         id: '10',
-        category: 'SITE OFFICE',
-        item: 'Location and maintenance',
+        category: 'LABELS & SIGNAGE',
+        item: 'Fire extinguisher signage is visible and properly positioned',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
+
+      // Pressure and Weight
       {
         id: '11',
-        category: 'SITE OFFICE',
-        item: 'Fire extinguishers condition',
+        category: 'PRESSURE & WEIGHT',
+        item: 'Pressure gauge needle is in green zone (if equipped)',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
       {
         id: '12',
-        category: 'SITE OFFICE',
-        item: 'First aid box facility',
+        category: 'PRESSURE & WEIGHT',
+        item: 'Extinguisher weight is within acceptable range',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
       {
         id: '13',
-        category: 'SITE OFFICE',
-        item: "Worker's legality / age",
+        category: 'PRESSURE & WEIGHT',
+        item: 'No signs of leakage around valve or connections',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
+
+      // Safety Pin and Seal
       {
         id: '14',
-        category: 'SITE OFFICE',
-        item: 'Green card (CIDB)/ NIOSH cert.',
+        category: 'SAFETY PIN & SEAL',
+        item: 'Safety pin is present and secure',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
       {
         id: '15',
-        category: 'SITE OFFICE',
-        item: 'PMA/ PMT/ JBE/ DOE approval',
+        category: 'SAFETY PIN & SEAL',
+        item: 'Tamper seal is intact and not broken',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
       {
         id: '16',
-        category: 'SITE OFFICE',
-        item: 'Competent scaffolder',
+        category: 'SAFETY PIN & SEAL',
+        item: 'Pull pin can be easily removed if needed',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
 
-      // Hot Work/Electrical
+      // Service Requirements
       {
         id: '17',
-        category: 'HOT WORK/ ELECTRICAL',
-        item: 'Gas cylinders secured and upright',
+        category: 'SERVICE REQUIREMENTS',
+        item: 'Annual service date has not expired',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
       {
         id: '18',
-        category: 'HOT WORK/ ELECTRICAL',
-        item: 'Gauge functionality',
+        category: 'SERVICE REQUIREMENTS',
+        item: 'Hydrostatic test is current (if applicable)',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
       {
         id: '19',
-        category: 'HOT WORK/ ELECTRICAL',
-        item: 'Flashback arrestors availability',
+        category: 'SERVICE REQUIREMENTS',
+        item: 'Six-year maintenance has been performed (if applicable)',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
+
+      // Environmental Conditions
       {
         id: '20',
-        category: 'HOT WORK/ ELECTRICAL',
-        item: 'Cables insulation/ earthing',
+        category: 'ENVIRONMENTAL CONDITIONS',
+        item: 'Extinguisher is protected from weather/environmental damage',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
       {
         id: '21',
-        category: 'HOT WORK/ ELECTRICAL',
-        item: 'Wiring condition-plugs, joints, DB',
+        category: 'ENVIRONMENTAL CONDITIONS',
+        item: 'Temperature conditions are within operating range',
         rating: null,
         comments: '',
+        requiresAction: false,
       },
-
-      // Fire Safety
       {
         id: '22',
-        category: 'FIRE SAFETY',
-        item: 'Fire extinguisher availability',
+        category: 'ENVIRONMENTAL CONDITIONS',
+        item: 'No exposure to corrosive atmospheres or chemicals',
         rating: null,
         comments: '',
-      },
-      {
-        id: '23',
-        category: 'FIRE SAFETY',
-        item: 'Emergency exit signage',
-        rating: null,
-        comments: '',
-      },
-      { id: '24', category: 'FIRE SAFETY', item: 'Hot work permit', rating: null, comments: '' },
-      {
-        id: '25',
-        category: 'FIRE SAFETY',
-        item: 'Flammable material storage',
-        rating: null,
-        comments: '',
+        requiresAction: false,
       },
     ],
   });
@@ -231,15 +266,17 @@ const ChecklistPage: React.FC = () => {
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Rating options with professional colors
-  const ratingOptions = [
-    { value: 'G', label: 'Good', color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
-    { value: 'A', label: 'Acceptable', color: 'bg-blue-600 hover:bg-blue-700 text-white' },
-    { value: 'P', label: 'Poor', color: 'bg-amber-600 hover:bg-amber-700 text-white' },
-    { value: 'I', label: 'Irrelevant', color: 'bg-slate-500 hover:bg-slate-600 text-white' },
-    { value: 'SIN', label: 'SIN', color: 'bg-orange-600 hover:bg-orange-700 text-white' },
-    { value: 'SPS', label: 'SPS', color: 'bg-red-600 hover:bg-red-700 text-white' },
-    { value: 'SWO', label: 'SWO', color: 'bg-red-700 hover:bg-red-800 text-white' },
+  // Extinguisher types
+  const extinguisherTypes = [
+    'ABC Dry Chemical',
+    'BC Dry Chemical',
+    'Class A Water',
+    'Class D Metal',
+    'Class K Kitchen',
+    'CO2 Carbon Dioxide',
+    'Foam AFFF',
+    'Halotron',
+    'Other',
   ];
 
   // Check if inspection is editable
@@ -251,7 +288,9 @@ const ChecklistPage: React.FC = () => {
 
     setInspectionData((prev) => ({
       ...prev,
-      items: prev.items.map((item) => (item.id === itemId ? { ...item, rating } : item)),
+      items: prev.items.map((item) =>
+        item.id === itemId ? { ...item, rating, requiresAction: rating === 'FAIL' } : item,
+      ),
       auditLog: [
         ...prev.auditLog,
         {
@@ -302,12 +341,27 @@ const ChecklistPage: React.FC = () => {
     }));
   };
 
+  // Calculate next service due date when last service date changes
+  useEffect(() => {
+    if (inspectionData.lastServiceDate && isEditable) {
+      const lastService = new Date(inspectionData.lastServiceDate);
+      const nextService = new Date(lastService);
+      nextService.setFullYear(nextService.getFullYear() + 1);
+
+      setInspectionData((prev) => ({
+        ...prev,
+        nextServiceDue: nextService.toISOString().split('T')[0],
+      }));
+    }
+  }, [inspectionData.lastServiceDate, isEditable]);
+
   // Save inspection
   const handleSave = () => {
     // Validation
     const missingFields = [];
-    if (!inspectionData.contractor) missingFields.push('Contractor');
+    if (!inspectionData.building) missingFields.push('Building');
     if (!inspectionData.location) missingFields.push('Location');
+    if (!inspectionData.serialNumber) missingFields.push('Serial Number');
     if (!inspectionData.inspectedBy) missingFields.push('Inspected By');
 
     const unratedItems = inspectionData.items.filter((item) => item.rating === null).length;
@@ -337,15 +391,15 @@ const ChecklistPage: React.FC = () => {
           timestamp: new Date().toISOString(),
           user: currentUser.name,
           action: 'submitted',
-          details: 'Inspection submitted for supervisor review',
+          details: 'Fire extinguisher inspection submitted for review',
         },
       ],
     };
 
     // Save to localStorage
-    const existingInspections = storage.load('inspections') || [];
+    const existingInspections = storage.load('fire_extinguisher_inspections') || [];
     const updatedInspections = [...existingInspections, savedInspection];
-    storage.save('inspections', updatedInspections);
+    storage.save('fire_extinguisher_inspections', updatedInspections);
 
     setInspectionData(savedInspection);
     setShowSaveConfirmation(false);
@@ -359,7 +413,12 @@ const ChecklistPage: React.FC = () => {
     if (confirm('Are you sure you want to clear all ratings and comments?')) {
       setInspectionData((prev) => ({
         ...prev,
-        items: prev.items.map((item) => ({ ...item, rating: null, comments: '' })),
+        items: prev.items.map((item) => ({
+          ...item,
+          rating: null,
+          comments: '',
+          requiresAction: false,
+        })),
         auditLog: [
           ...prev.auditLog,
           {
@@ -380,21 +439,23 @@ const ChecklistPage: React.FC = () => {
     }
     acc[item.category].push(item);
     return acc;
-  }, {} as Record<string, ChecklistItem[]>);
+  }, {} as Record<string, FireExtinguisherItem[]>);
 
   // Calculate statistics
   const stats = {
     total: inspectionData.items.length,
     completed: inspectionData.items.filter((item) => item.rating !== null).length,
-    good: inspectionData.items.filter((item) => item.rating === 'G').length,
-    acceptable: inspectionData.items.filter((item) => item.rating === 'A').length,
-    poor: inspectionData.items.filter((item) => item.rating === 'P').length,
-    issues: inspectionData.items.filter((item) => ['SIN', 'SPS', 'SWO'].includes(item.rating || ''))
-      .length,
+    passed: inspectionData.items.filter((item) => item.rating === 'PASS').length,
+    failed: inspectionData.items.filter((item) => item.rating === 'FAIL').length,
+    notApplicable: inspectionData.items.filter((item) => item.rating === 'N/A').length,
+    requiresAction: inspectionData.items.filter((item) => item.requiresAction).length,
   };
 
+  const overallStatus =
+    stats.failed > 0 ? 'NEEDS ATTENTION' : stats.completed === stats.total ? 'PASS' : 'INCOMPLETE';
+
   return (
-    <BaseLayout title="HSE Inspection">
+    <BaseLayout title="Fire Extinguisher Inspection">
       <div className="max-w-4xl mx-auto">
         {/* Status Banner */}
         {!isEditable && (
@@ -445,32 +506,46 @@ const ChecklistPage: React.FC = () => {
         {/* Header Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="px-6 py-5 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">HSE Inspection</h1>
-            <p className="text-sm text-gray-600 mt-1">Health, Safety & Environment Checklist</p>
+            <h1 className="text-2xl font-bold text-gray-900">Fire Extinguisher Inspection</h1>
+            <p className="text-sm text-gray-600 mt-1">Equipment Safety Verification</p>
           </div>
 
           <div className="p-6">
             {/* Basic Information */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contractor <span className="text-red-500">*</span>
+                  Building <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  value={inspectionData.contractor}
-                  onChange={(e) => handleHeaderChange('contractor', e.target.value)}
+                  value={inspectionData.building}
+                  onChange={(e) => handleHeaderChange('building', e.target.value)}
                   disabled={!isEditable}
                   className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                     !isEditable ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
                   }`}
-                  placeholder="Enter contractor name"
+                  placeholder="Building name or number"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Floor</label>
+                <input
+                  type="text"
+                  value={inspectionData.floor}
+                  onChange={(e) => handleHeaderChange('floor', e.target.value)}
+                  disabled={!isEditable}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    !isEditable ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                  placeholder="Floor number"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location <span className="text-red-500">*</span>
+                  Specific Location <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -480,10 +555,100 @@ const ChecklistPage: React.FC = () => {
                   className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                     !isEditable ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
                   }`}
-                  placeholder="Enter location"
+                  placeholder="Near elevator, hallway, etc."
+                />
+              </div>
+            </div>
+
+            {/* Extinguisher Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Extinguisher Type
+                </label>
+                <select
+                  value={inspectionData.extinguisherType}
+                  onChange={(e) => handleHeaderChange('extinguisherType', e.target.value)}
+                  disabled={!isEditable}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    !isEditable ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {extinguisherTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Serial Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={inspectionData.serialNumber}
+                  onChange={(e) => handleHeaderChange('serialNumber', e.target.value)}
+                  disabled={!isEditable}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    !isEditable ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                  placeholder="Serial number from label"
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Manufacturer Date
+                </label>
+                <input
+                  type="date"
+                  value={inspectionData.manufacturerDate}
+                  onChange={(e) => handleHeaderChange('manufacturerDate', e.target.value)}
+                  disabled={!isEditable}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    !isEditable ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Service Information */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Service Date
+                </label>
+                <input
+                  type="date"
+                  value={inspectionData.lastServiceDate}
+                  onChange={(e) => handleHeaderChange('lastServiceDate', e.target.value)}
+                  disabled={!isEditable}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    !isEditable ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Next Service Due
+                </label>
+                <input
+                  type="date"
+                  value={inspectionData.nextServiceDue}
+                  onChange={(e) => handleHeaderChange('nextServiceDue', e.target.value)}
+                  disabled={!isEditable}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    !isEditable ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Inspector Information */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Inspected By <span className="text-red-500">*</span>
@@ -501,11 +666,13 @@ const ChecklistPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Inspection Date
+                </label>
                 <input
                   type="date"
-                  value={inspectionData.date}
-                  onChange={(e) => handleHeaderChange('date', e.target.value)}
+                  value={inspectionData.inspectionDate}
+                  onChange={(e) => handleHeaderChange('inspectionDate', e.target.value)}
                   disabled={!isEditable}
                   className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                     !isEditable ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
@@ -516,7 +683,7 @@ const ChecklistPage: React.FC = () => {
 
             {/* Progress Statistics */}
             <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Progress Overview</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Inspection Status</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div className="text-center">
                   <div className="text-lg font-bold text-gray-900">
@@ -525,44 +692,37 @@ const ChecklistPage: React.FC = () => {
                   <div className="text-xs text-gray-600">Completed</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-bold text-emerald-600">{stats.good}</div>
-                  <div className="text-xs text-gray-600">Good</div>
+                  <div className="text-lg font-bold text-emerald-600">{stats.passed}</div>
+                  <div className="text-xs text-gray-600">Pass</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-bold text-blue-600">{stats.acceptable}</div>
-                  <div className="text-xs text-gray-600">Acceptable</div>
+                  <div className="text-lg font-bold text-red-600">{stats.failed}</div>
+                  <div className="text-xs text-gray-600">Fail</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-bold text-amber-600">{stats.poor}</div>
-                  <div className="text-xs text-gray-600">Poor</div>
+                  <div className="text-lg font-bold text-gray-600">{stats.notApplicable}</div>
+                  <div className="text-xs text-gray-600">N/A</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-bold text-red-600">{stats.issues}</div>
-                  <div className="text-xs text-gray-600">Issues</div>
+                  <div className="text-lg font-bold text-amber-600">{stats.requiresAction}</div>
+                  <div className="text-xs text-gray-600">Action Req.</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-bold text-gray-900">
-                    {Math.round((stats.completed / stats.total) * 100)}%
+                  <div
+                    className={`text-lg font-bold ${
+                      overallStatus === 'PASS'
+                        ? 'text-emerald-600'
+                        : overallStatus === 'NEEDS ATTENTION'
+                        ? 'text-red-600'
+                        : 'text-amber-600'
+                    }`}
+                  >
+                    {overallStatus}
                   </div>
-                  <div className="text-xs text-gray-600">Complete</div>
+                  <div className="text-xs text-gray-600">Overall</div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Rating Legend */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Rating Guide</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-            {ratingOptions.map((option) => (
-              <div key={option.value} className="flex items-center">
-                <span className={`inline-block w-4 h-4 rounded mr-2 ${option.color}`}></span>
-                <span className="text-xs text-gray-700">
-                  {option.value} - {option.label}
-                </span>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -584,29 +744,33 @@ const ChecklistPage: React.FC = () => {
                       </div>
 
                       {/* Rating Buttons - Mobile Optimized */}
-                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-3">
-                        {ratingOptions.map((option) => (
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        {(['PASS', 'FAIL', 'N/A'] as const).map((rating) => (
                           <button
-                            key={option.value}
-                            onClick={() => handleRatingChange(item.id, option.value as RatingType)}
+                            key={rating}
+                            onClick={() => handleRatingChange(item.id, rating)}
                             disabled={!isEditable}
                             className={`
-                              px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 min-h-[44px] touch-manipulation
+                              px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-h-[48px] touch-manipulation
                               ${
                                 !isEditable
                                   ? 'cursor-not-allowed opacity-50'
                                   : 'cursor-pointer active:scale-95'
                               }
                               ${
-                                item.rating === option.value
-                                  ? option.color
+                                item.rating === rating
+                                  ? rating === 'PASS'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                    : rating === 'FAIL'
+                                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                                    : 'bg-gray-600 hover:bg-gray-700 text-white'
                                   : isEditable
                                   ? 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300'
                                   : 'bg-gray-50 text-gray-400 border border-gray-200'
                               }
                             `}
                           >
-                            {option.value}
+                            {rating}
                           </button>
                         ))}
                       </div>
@@ -624,6 +788,22 @@ const ChecklistPage: React.FC = () => {
                           }`}
                         />
                       </div>
+
+                      {/* Action Required Badge */}
+                      {item.requiresAction && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path
+                                fillRule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Action Required
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -739,4 +919,4 @@ const ChecklistPage: React.FC = () => {
   );
 };
 
-export default ChecklistPage;
+export default FireExtinguisherInspection;
