@@ -28,6 +28,9 @@
     "@typescript-eslint/no-explicit-any": "error",
     "react/react-in-jsx-scope": "off",
     "react/jsx-props-no-spreading": "off",
+    "react/function-component-definition": "off",
+    "react/require-default-props": "off",
+    "react/prop-types": "off",
     "object-curly-newline": "off",
     "no-console": "warn", // 👈 TO AVOID CONSOLE ERRORS
     "no-debugger": "warn" // 👈 TO AVOID DEBUGGER ERRORS

@@ -1,3 +1,4 @@
+/* eslint-disable react/button-has-type */
 import React, { useState } from 'react';
 import BaseLayout from '@/layouts/BaseLayout';
 import { storage } from '@/utils/storage';

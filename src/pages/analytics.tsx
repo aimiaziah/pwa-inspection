@@ -149,7 +149,7 @@ const AnalyticsDashboard: React.FC = () => {
           const category = item.category || 'UNCATEGORIZED';
           if (!categoryStats[category]) {
             categoryStats[category] = {
-              category: category,
+              category,
               total: 0,
               good: 0,
               acceptable: 0,
@@ -228,7 +228,7 @@ const AnalyticsDashboard: React.FC = () => {
       <BaseLayout title="Analytics Dashboard">
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
             <span className="text-gray-600">Loading analytics...</span>
           </div>
         </div>
@@ -474,11 +474,11 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
             <div className="flex justify-center gap-6 mt-4 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                <div className="w-4 h-4 bg-blue-500 rounded" />
                 <span>Inspections Count</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-emerald-500 rounded"></div>
+                <div className="w-4 h-4 bg-emerald-500 rounded" />
                 <span>Compliance Rate</span>
               </div>
             </div>

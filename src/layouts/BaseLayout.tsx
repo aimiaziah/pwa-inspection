@@ -1,22 +1,64 @@
+// src/layouts/BaseLayout.tsx - Updated to preserve original design + add auth
 import React from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-
+import { useAuth } from '@/hooks/useAuth';
 
 interface BaseLayoutProps {
   children: React.ReactNode;
   title?: string;
   description?: string;
+  requireAuth?: boolean;
 }
 
 const BaseLayout: React.FC<BaseLayoutProps> = ({
   children,
   title = 'HSE Inspection System',
   description = 'Comprehensive Health, Safety & Environment inspection management system',
+  requireAuth = true,
 }) => {
   const router = useRouter();
+
+  // Initialize all hooks first - NEVER conditionally call hooks
+  const [showMobileMenu, setShowMobileMenu] = React.useState(false);
+  const [showInspectionsDropdown, setShowInspectionsDropdown] = React.useState(false);
+  const [showUserMenu, setShowUserMenu] = React.useState(false);
+
+  // Auth hooks - handle auth context safely
+  let user = null;
+  let logout = () => {};
+  let isAuthenticated = false;
+
+  try {
+    const authContext = useAuth();
+    user = authContext.user;
+    logout = authContext.logout;
+    isAuthenticated = authContext.isAuthenticated;
+  } catch (error) {
+    console.warn('Auth context not available:', error);
+    // Handle gracefully when auth is not available
+  }
+
+  // Handle auth redirect effect
+  React.useEffect(() => {
+    if (requireAuth && !isAuthenticated && router.pathname !== '/login') {
+      router.push('/login');
+    }
+  }, [requireAuth, isAuthenticated, router]);
+
+  // Don't render content if auth is required but user is not authenticated
+  if (requireAuth && !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const navItems = [
     {
@@ -64,10 +106,11 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
               />
             </svg>
           ),
+          description: 'Health, Safety & Environment',
         },
         {
           href: '/fire-extinguisher',
@@ -78,10 +121,11 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"
+                d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 1-4 4-4 2.207 0 4 1.793 4 4v6c0 1.657-1.343 3-3 3z"
               />
             </svg>
           ),
+          description: 'Fire safety equipment',
         },
         {
           href: '/first-aid',
@@ -96,11 +140,12 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
               />
             </svg>
           ),
+          description: 'First aid supplies inspection',
         },
       ],
     },
     {
-      href: '/saved',
+      href: '/reports',
       label: 'Reports',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +159,11 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
       ),
       description: 'View and manage completed inspections',
     },
-    {
+  ];
+
+  // Add role-based menu items
+  if (user?.role === 'supervisor' || user?.role === 'admin') {
+    navItems.push({
       href: '/approval-workflow',
       label: 'Approvals',
       icon: (
@@ -128,8 +177,11 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
         </svg>
       ),
       description: 'Review pending inspections',
-    },
-    {
+    });
+  }
+
+  if (user?.role === 'admin') {
+    navItems.push({
       href: '/analytics',
       label: 'Analytics',
       icon: (
@@ -143,8 +195,8 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
         </svg>
       ),
       description: 'Trends and compliance metrics',
-    },
-  ];
+    });
+  }
 
   const isActivePath = (path: string) => {
     if (path === '/') {
@@ -153,8 +205,28 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
     return router.pathname.startsWith(path);
   };
 
-  const [showMobileMenu, setShowMobileMenu] = React.useState(false);
-  const [showInspectionsDropdown, setShowInspectionsDropdown] = React.useState(false);
+  const handleLogout = async () => {
+    try {
+      // Clear any pending operations
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Perform logout
+      logout();
+
+      // Clear browser cache/storage if needed
+      if (typeof window !== 'undefined') {
+        // Optional: Clear any cached data
+        // sessionStorage.clear();
+      }
+
+      // Redirect to login
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force redirect even if there's an error
+      router.push('/login');
+    }
+  };
 
   return (
     <>
@@ -173,20 +245,20 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
+        {/* Header - Preserving original design */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              {/* Logo and Title */}
+            <div className="flex justify-between items-center h-20 py-2">
+              {/* Logo and Title - Original Design */}
               <div className="flex items-center">
                 <Link href="/" className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex items-center justify-center">
                     <Image
                       src="/theta-logo.png"
                       alt="Company Logo"
                       width={100}
                       height={40}
-                      className="object-contain sm:w-28 sm:h-auto w-20"
+                      className="object-contain max-w-full max-h-full"
                     />
                   </div>
                   <div>
@@ -218,33 +290,29 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
                         >
                           {item.icon}
                           <span>{item.label}</span>
-                          <svg
-                            className="w-4 h-4 ml-1"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
                         </button>
 
-                        {/* Dropdown Menu */}
                         {showInspectionsDropdown && (
-                          <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                            <div className="py-2">
+                          <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                            <div className="py-1">
                               {item.subItems.map((subItem) => (
                                 <Link
                                   key={subItem.href}
                                   href={subItem.href}
-                                  className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                  className={`flex items-center px-4 py-2 text-sm transition-colors ${
+                                    isActivePath(subItem.href)
+                                      ? 'text-blue-600 bg-blue-50'
+                                      : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+                                  }`}
+                                  onClick={() => setShowInspectionsDropdown(false)}
                                 >
                                   {subItem.icon}
-                                  <span>{subItem.label}</span>
+                                  <div className="ml-2">
+                                    <div className="font-medium">{subItem.label}</div>
+                                    <div className="text-xs text-gray-500">
+                                      {subItem.description}
+                                    </div>
+                                  </div>
                                 </Link>
                               ))}
                             </div>
@@ -254,52 +322,240 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
                     ) : (
                       <Link
                         href={item.href}
-                        className={`
-                          px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2
-                          ${
-                            isActivePath(item.href)
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                          }
-                        `}
+                        className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          isActivePath(item.href)
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        }`}
                       >
                         {item.icon}
-                        <span>{item.label}</span>
+                        <span className="ml-2">{item.label}</span>
                       </Link>
                     )}
                   </div>
                 ))}
               </nav>
 
-              {/* Mobile menu button */}
-              <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="lg:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 touch-manipulation"
-              >
-                {showMobileMenu ? (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
+              {/* User Menu - Enhanced with better logout */}
+              <div className="flex items-center space-x-4">
+                {user && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="flex items-center text-sm rounded-full bg-white p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span className="text-sm font-medium text-blue-600">
+                          {user.name
+                            .split(' ')
+                            .map((n) => n[0])
+                            .join('')}
+                        </span>
+                      </div>
+                      <span className="ml-2 text-gray-700 hidden sm:block font-medium">
+                        {user.name}
+                      </span>
+                      <svg
+                        className="ml-1 h-4 w-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    {showUserMenu && (
+                      <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                        <div className="py-1">
+                          {/* User Info Section */}
+                          <div className="px-4 py-3 border-b border-gray-100">
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                <span className="text-sm font-medium text-blue-600">
+                                  {user.name
+                                    .split(' ')
+                                    .map((n) => n[0])
+                                    .join('')}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-900">{user.name}</div>
+                                <div className="text-sm text-gray-500 capitalize">{user.role}</div>
+                                <div className="text-xs text-gray-400">{user.department}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Role-based Menu Items */}
+                          {user.role === 'admin' && (
+                            <>
+                              <Link
+                                href="/admin"
+                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                onClick={() => setShowUserMenu(false)}
+                              >
+                                <svg
+                                  className="w-4 h-4 mr-3 text-gray-400"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                                  />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                  />
+                                </svg>
+                                Admin Panel
+                              </Link>
+                              <div className="border-t border-gray-100"></div>
+                            </>
+                          )}
+
+                          {(user.role === 'supervisor' || user.role === 'admin') && (
+                            <Link
+                              href="/approval-workflow"
+                              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                              onClick={() => setShowUserMenu(false)}
+                            >
+                              <svg
+                                className="w-4 h-4 mr-3 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                              Pending Approvals
+                            </Link>
+                          )}
+
+                          {/* Quick Actions */}
+                          <div className="border-t border-gray-100"></div>
+
+                          <Link
+                            href="/reports"
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <svg
+                              className="w-4 h-4 mr-3 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                            My Reports
+                          </Link>
+
+                          {/* Logout Section */}
+                          <div className="border-t border-gray-100"></div>
+                          <button
+                            onClick={() => {
+                              setShowUserMenu(false);
+                              handleLogout();
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-3 text-red-500"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                              />
+                            </svg>
+                            Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </button>
+
+                {/* Quick Logout Button (Alternative - shown when user menu is closed) */}
+                {user && (
+                  <button
+                    onClick={handleLogout}
+                    className="hidden sm:flex items-center px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Sign Out"
+                  >
+                    <svg
+                      className="w-4 h-4 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    <span className="hidden lg:block">Sign Out</span>
+                  </button>
+                )}
+
+                {/* Mobile menu button */}
+                <button
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  className="lg:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 touch-manipulation"
+                >
+                  {showMobileMenu ? (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 6h16M4 12h16M4 18h16"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Mobile Navigation */}
+          {/* Mobile Navigation - Preserving original structure */}
           {showMobileMenu && (
             <div className="lg:hidden border-t border-gray-200 bg-white">
               <div className="px-4 py-3 space-y-1">
@@ -352,7 +608,7 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
           )}
         </header>
 
-        {/* Breadcrumb */}
+        {/* Breadcrumb - Preserving original */}
         {router.pathname !== '/' && (
           <div className="bg-white border-b border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -409,85 +665,18 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
         )}
 
         {/* Main Content */}
-        <main className="px-4 sm:px-6 lg:px-8 py-6">{children}</main>
+        <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">{children}</main>
 
-        {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 mt-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div>
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
-                    <svg
-                      className="w-4 h-4 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-sm font-semibold text-gray-900">HSE Inspector</h3>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Comprehensive health, safety, and environment inspection management with
-                  role-based approvals and analytics.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Links</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>
-                    <Link href="/hse-inspection" className="hover:text-gray-900">
-                      HSE Inspection
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/fire-extinguisher" className="hover:text-gray-900">
-                      Fire Extinguisher
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/first-aid" className="hover:text-gray-900">
-                      First Aid Kit
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/analytics" className="hover:text-gray-900">
-                      Analytics
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">System Info</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>Version 2.0.0</li>
-                  <li>PWA Enabled</li>
-                  <li>Offline Support</li>
-                  <li>
-                    <Link href="/audit-trail" className="hover:text-gray-900">
-                      Audit Trail
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-8 border-t border-gray-200 text-center">
-              <p className="text-sm text-gray-500">
-                © 2025 HSE Inspection System. Built for safety and compliance.
-              </p>
-            </div>
-          </div>
-        </footer>
+        {/* Click outside handler for dropdowns */}
+        {(showInspectionsDropdown || showUserMenu) && (
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => {
+              setShowInspectionsDropdown(false);
+              setShowUserMenu(false);
+            }}
+          />
+        )}
       </div>
     </>
   );

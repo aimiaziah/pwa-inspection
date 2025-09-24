@@ -319,7 +319,7 @@ export class ReportGenerator {
     // For a full PDF implementation, you would typically use libraries like jsPDF or Puppeteer
     // For this implementation, we'll create an HTML version that can be printed to PDF
 
-    let htmlContent = this.generateHTMLReport(inspections, reportType);
+    const htmlContent = this.generateHTMLReport(inspections, reportType);
 
     // Create a new window with the HTML content for printing
     const printWindow = window.open('', '_blank');
@@ -355,11 +355,11 @@ export class ReportGenerator {
 
     if (reportType === 'individual' && inspections.length === 1) {
       return this.generateIndividualInspectionHTML(inspections[0], css);
-    } else if (reportType === 'compliance') {
-      return this.generateComplianceReportHTML(inspections, css);
-    } else {
-      return this.generateSummaryReportHTML(inspections, css);
     }
+    if (reportType === 'compliance') {
+      return this.generateComplianceReportHTML(inspections, css);
+    }
+    return this.generateSummaryReportHTML(inspections, css);
   }
 
   private static generateIndividualInspectionHTML(inspection: InspectionData, css: string): string {

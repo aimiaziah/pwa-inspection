@@ -557,7 +557,7 @@ const ChecklistPage: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             {ratingOptions.map((option) => (
               <div key={option.value} className="flex items-center">
-                <span className={`inline-block w-4 h-4 rounded mr-2 ${option.color}`}></span>
+                <span className={`inline-block w-4 h-4 rounded mr-2 ${option.color}`} />
                 <span className="text-xs text-gray-700">
                   {option.value} - {option.label}
                 </span>

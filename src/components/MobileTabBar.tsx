@@ -23,11 +23,7 @@ const MobileTabBar: React.FC<MobileTabBarProps> = ({ className = '' }) => {
       <nav className="flex justify-around">
         {tabs.map((tab) => (
           <Link key={tab.href} href={tab.href}>
-            className=
-            {`
-              flex flex-col items-center py-2 px-3 flex-1
-              ${router.pathname === tab.href ? 'text-bits-yellow' : 'text-bits-gray'}
-            `}
+
             <span className="text-xl mb-1">{tab.icon}</span>
             <span className="text-xs">{tab.label}</span>
           </Link>
