@@ -53,7 +53,7 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -162,23 +162,6 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
   ];
 
   // Add role-based menu items
-  if (user?.role === 'supervisor' || user?.role === 'admin') {
-    navItems.push({
-      href: '/approval-workflow',
-      label: 'Approvals',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      description: 'Review pending inspections',
-    });
-  }
 
   if (user?.role === 'admin') {
     navItems.push({
@@ -208,7 +191,7 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
   const handleLogout = async () => {
     try {
       // Clear any pending operations
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Perform logout
       logout();
@@ -238,7 +221,8 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
 
         {/* PWA Meta Tags */}
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/theta-logo.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="HSE Inspector" />
@@ -421,35 +405,12 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
                                 </svg>
                                 Admin Panel
                               </Link>
-                              <div className="border-t border-gray-100"></div>
+                              <div className="border-t border-gray-100" />
                             </>
                           )}
 
-                          {(user.role === 'supervisor' || user.role === 'admin') && (
-                            <Link
-                              href="/approval-workflow"
-                              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                              onClick={() => setShowUserMenu(false)}
-                            >
-                              <svg
-                                className="w-4 h-4 mr-3 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              Pending Approvals
-                            </Link>
-                          )}
-
                           {/* Quick Actions */}
-                          <div className="border-t border-gray-100"></div>
+                          <div className="border-t border-gray-100" />
 
                           <Link
                             href="/reports"
@@ -473,7 +434,7 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
                           </Link>
 
                           {/* Logout Section */}
-                          <div className="border-t border-gray-100"></div>
+                          <div className="border-t border-gray-100" />
                           <button
                             onClick={() => {
                               setShowUserMenu(false);

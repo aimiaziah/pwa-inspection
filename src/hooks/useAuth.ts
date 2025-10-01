@@ -2,7 +2,7 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { storage } from '@/utils/storage';
 
-export type UserRole = 'inspector' | 'supervisor' | 'admin';
+export type UserRole = 'admin' | 'inspector' | 'devsecops';
 
 export interface User {
   id: string;
@@ -14,11 +14,29 @@ export interface User {
   createdAt: string;
   lastLogin?: string;
   permissions: {
-    canCreateInspections: boolean;
-    canApproveInspections: boolean;
-    canViewAnalytics: boolean;
+    // Admin permissions
     canManageUsers: boolean;
+    canManageRoles: boolean;
+    canManageForms: boolean;
+    canSetNotifications: boolean;
+    canManageSystem: boolean;
+    canBackupRestore: boolean;
+
+    // Inspector permissions
+    canCreateInspections: boolean;
+    canEditInspections: boolean;
+    canViewInspections: boolean;
+    canViewAnalytics: boolean;
+    canViewGoogleDriveStatus: boolean;
+    canAddDigitalSignature: boolean;
     canExportReports: boolean;
+
+    // DevSecOps permissions
+    canViewDevSecOpsDashboard: boolean;
+    canViewSecurityLogs: boolean;
+    canViewSystemErrors: boolean;
+    canTrackDataBreaches: boolean;
+    canMonitorUpdates: boolean;
     canViewAuditTrail: boolean;
   };
 }
@@ -45,33 +63,34 @@ const defaultUsers: User[] = [
     isActive: true,
     createdAt: new Date().toISOString(),
     permissions: {
-      canCreateInspections: true,
-      canApproveInspections: true,
-      canViewAnalytics: true,
+      // Admin permissions
       canManageUsers: true,
+      canManageRoles: true,
+      canManageForms: true,
+      canSetNotifications: true,
+      canManageSystem: true,
+      canBackupRestore: true,
+
+      // Inspector permissions (limited access)
+      canCreateInspections: false,
+      canEditInspections: false,
+      canViewInspections: true,
+      canViewAnalytics: true,
+      canViewGoogleDriveStatus: true,
+      canAddDigitalSignature: false,
       canExportReports: true,
+
+      // DevSecOps permissions (limited access)
+      canViewDevSecOpsDashboard: false,
+      canViewSecurityLogs: true,
+      canViewSystemErrors: true,
+      canTrackDataBreaches: true,
+      canMonitorUpdates: true,
       canViewAuditTrail: true,
     },
   },
   {
     id: '2',
-    name: 'Supervisor Demo',
-    pin: '5678',
-    role: 'supervisor',
-    department: 'Safety & Compliance',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    permissions: {
-      canCreateInspections: true,
-      canApproveInspections: true,
-      canViewAnalytics: true,
-      canManageUsers: false,
-      canExportReports: true,
-      canViewAuditTrail: true,
-    },
-  },
-  {
-    id: '3',
     name: 'Inspector Demo',
     pin: '9999',
     role: 'inspector',
@@ -79,12 +98,65 @@ const defaultUsers: User[] = [
     isActive: true,
     createdAt: new Date().toISOString(),
     permissions: {
-      canCreateInspections: true,
-      canApproveInspections: false,
-      canViewAnalytics: false,
+      // Admin permissions
       canManageUsers: false,
+      canManageRoles: false,
+      canManageForms: false,
+      canSetNotifications: false,
+      canManageSystem: false,
+      canBackupRestore: false,
+
+      // Inspector permissions
+      canCreateInspections: true,
+      canEditInspections: true,
+      canViewInspections: true,
+      canViewAnalytics: true,
+      canViewGoogleDriveStatus: true,
+      canAddDigitalSignature: true,
       canExportReports: true,
+
+      // DevSecOps permissions
+      canViewDevSecOpsDashboard: false,
+      canViewSecurityLogs: false,
+      canViewSystemErrors: false,
+      canTrackDataBreaches: false,
+      canMonitorUpdates: false,
       canViewAuditTrail: false,
+    },
+  },
+  {
+    id: '3',
+    name: 'DevSecOps User',
+    pin: '7777',
+    role: 'devsecops',
+    department: 'Security & Development',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    permissions: {
+      // Admin permissions
+      canManageUsers: false,
+      canManageRoles: false,
+      canManageForms: false,
+      canSetNotifications: false,
+      canManageSystem: false,
+      canBackupRestore: false,
+
+      // Inspector permissions (limited access)
+      canCreateInspections: false,
+      canEditInspections: false,
+      canViewInspections: true,
+      canViewAnalytics: false,
+      canViewGoogleDriveStatus: false,
+      canAddDigitalSignature: false,
+      canExportReports: false,
+
+      // DevSecOps permissions
+      canViewDevSecOpsDashboard: true,
+      canViewSecurityLogs: true,
+      canViewSystemErrors: true,
+      canTrackDataBreaches: true,
+      canMonitorUpdates: true,
+      canViewAuditTrail: true,
     },
   },
 ];
@@ -188,7 +260,6 @@ export function withAuth<P extends object>(
 
       if (requiredPermission && !hasPermission(requiredPermission)) {
         window.location.href = '/unauthorized';
-        return;
       }
     }, [isAuthenticated, user, hasPermission, isRole]);
 

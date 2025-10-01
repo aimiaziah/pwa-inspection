@@ -14,16 +14,6 @@ interface InspectionData {
     rating: string | null;
     comments: string;
   }>;
-  supervisorApproval?: {
-    approvedBy: string;
-    approvedAt: string;
-    comments: string;
-  };
-  adminApproval?: {
-    approvedBy: string;
-    approvedAt: string;
-    comments: string;
-  };
   auditLog: Array<{
     timestamp: string;
     user: string;
@@ -93,23 +83,6 @@ export class ReportGenerator {
     csv += `Compliance Rate,${Math.round(
       ((stats.good + stats.acceptable) / stats.completed) * 100,
     )}%\n\n`;
-
-    // Approval information
-    if (inspection.supervisorApproval) {
-      csv += 'SUPERVISOR APPROVAL\n';
-      csv += `Approved By,${inspection.supervisorApproval.approvedBy}\n`;
-      csv += `Approved Date,${new Date(
-        inspection.supervisorApproval.approvedAt,
-      ).toLocaleString()}\n`;
-      csv += `Comments,"${inspection.supervisorApproval.comments || 'No comments'}"\n\n`;
-    }
-
-    if (inspection.adminApproval) {
-      csv += 'ADMIN APPROVAL\n';
-      csv += `Approved By,${inspection.adminApproval.approvedBy}\n`;
-      csv += `Approved Date,${new Date(inspection.adminApproval.approvedAt).toLocaleString()}\n`;
-      csv += `Comments,"${inspection.adminApproval.comments || 'No comments'}"\n\n`;
-    }
 
     // Detailed inspection items
     csv += 'DETAILED INSPECTION RESULTS\n';
@@ -348,7 +321,6 @@ export class ReportGenerator {
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
         .stat-card { background: #f0f9ff; padding: 15px; border-radius: 5px; text-align: center; }
         .critical-issue { background-color: #fee2e2; padding: 10px; border-left: 4px solid #ef4444; margin: 10px 0; }
-        .approval-section { background-color: #f0fdf4; padding: 15px; border-radius: 5px; margin: 10px 0; }
         @media print { body { margin: 0; } .no-print { display: none; } }
       </style>
     `;
@@ -408,37 +380,6 @@ export class ReportGenerator {
           </div>
         </div>
 
-        ${
-          inspection.supervisorApproval
-            ? `
-          <div class="approval-section">
-            <h3>Supervisor Approval</h3>
-            <p><strong>Approved by:</strong> ${inspection.supervisorApproval.approvedBy}</p>
-            <p><strong>Date:</strong> ${new Date(
-              inspection.supervisorApproval.approvedAt,
-            ).toLocaleString()}</p>
-            <p><strong>Comments:</strong> ${
-              inspection.supervisorApproval.comments || 'No comments'
-            }</p>
-          </div>
-        `
-            : ''
-        }
-
-        ${
-          inspection.adminApproval
-            ? `
-          <div class="approval-section">
-            <h3>Admin Approval</h3>
-            <p><strong>Approved by:</strong> ${inspection.adminApproval.approvedBy}</p>
-            <p><strong>Date:</strong> ${new Date(
-              inspection.adminApproval.approvedAt,
-            ).toLocaleString()}</p>
-            <p><strong>Comments:</strong> ${inspection.adminApproval.comments || 'No comments'}</p>
-          </div>
-        `
-            : ''
-        }
 
         <h2>Inspection Results</h2>
         <table>

@@ -1,16 +1,13 @@
 /* eslint-disable react/button-has-type */
 import React, { useState } from 'react';
 import BaseLayout from '@/layouts/BaseLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { storage } from '@/utils/storage';
+import { useAuth } from '@/hooks/useAuth';
 
 type ItemStatus = 'GOOD' | 'LOW' | 'EXPIRED' | 'MISSING' | 'DAMAGED' | null;
-type InspectionStatus =
-  | 'draft'
-  | 'submitted'
-  | 'supervisor_approved'
-  | 'admin_approved'
-  | 'completed';
-type UserRole = 'inspector' | 'supervisor' | 'admin';
+type InspectionStatus = 'draft' | 'completed';
+type UserRole = 'inspector' | 'admin';
 
 interface FirstAidItem {
   id: string;
@@ -47,10 +44,45 @@ interface FirstAidInspectionData {
 }
 
 const FirstAidInspection: React.FC = () => {
-  const [currentUser] = useState<{ name: string; role: UserRole }>({
-    name: 'John Inspector',
-    role: 'inspector',
-  });
+  const { user, hasPermission, isRole } = useAuth();
+
+  // Check if user can create inspections and is not an admin
+  const canFillInspection = hasPermission('canCreateInspections') && !isRole('admin');
+
+  if (!canFillInspection) {
+    return (
+      <BaseLayout title="First Aid Kit Inspection">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <div className="mb-4">
+              <svg
+                className="mx-auto h-12 w-12 text-red-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0l-8.898 12c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-red-800 mb-2">Access Restricted</h3>
+            <p className="text-red-700 mb-4">
+              {isRole('admin')
+                ? 'Administrators cannot fill inspection forms. This is reserved for inspectors.'
+                : 'You do not have permission to create inspections. Please contact your administrator.'}
+            </p>
+            <p className="text-sm text-red-600">
+              Current role: <span className="font-medium">{user?.role}</span>
+            </p>
+          </div>
+        </div>
+      </BaseLayout>
+    );
+  }
 
   const [inspectionData, setInspectionData] = useState<FirstAidInspectionData>({
     id: Date.now().toString(),
@@ -60,14 +92,14 @@ const FirstAidInspection: React.FC = () => {
     kitType: 'Standard Workplace Kit',
     kitSerialNumber: '',
     lastRestockDate: '',
-    inspectedBy: currentUser.name,
+    inspectedBy: user?.name || '',
     inspectionDate: new Date().toISOString().split('T')[0],
     status: 'draft',
     createdAt: new Date().toISOString(),
     auditLog: [
       {
         timestamp: new Date().toISOString(),
-        user: currentUser.name,
+        user: user?.name || 'Unknown',
         action: 'created',
         details: 'First aid kit inspection record created',
       },
@@ -358,7 +390,7 @@ const FirstAidInspection: React.FC = () => {
         ...prev.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
+          user: user?.name || 'Unknown',
           action: 'quantity_changed',
           details: `Quantity changed for item ${itemId} to ${quantity}`,
         },
@@ -385,7 +417,7 @@ const FirstAidInspection: React.FC = () => {
         ...prev.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
+          user: user?.name || 'Unknown',
           action: 'status_changed',
           details: `Status changed for item ${itemId} to ${status}`,
         },
@@ -415,7 +447,7 @@ const FirstAidInspection: React.FC = () => {
         ...prev.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
+          user: user?.name || 'Unknown',
           action: 'expiry_changed',
           details: `Expiry date changed for item ${itemId} to ${expiryDate}`,
         },
@@ -434,7 +466,7 @@ const FirstAidInspection: React.FC = () => {
         ...prev.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
+          user: user?.name || 'Unknown',
           action: 'comment_changed',
           details: `Comment updated for item ${itemId}`,
         },
@@ -453,7 +485,7 @@ const FirstAidInspection: React.FC = () => {
         ...prev.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
+          user: user?.name || 'Unknown',
           action: 'header_changed',
           details: `${field} changed to ${value}`,
         },
@@ -488,15 +520,15 @@ const FirstAidInspection: React.FC = () => {
   const confirmSave = () => {
     const savedInspection = {
       ...inspectionData,
-      status: 'submitted' as InspectionStatus,
+      status: 'completed' as InspectionStatus,
       savedAt: new Date().toISOString(),
       auditLog: [
         ...inspectionData.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
-          action: 'submitted',
-          details: 'First aid kit inspection submitted for review',
+          user: user?.name || 'Unknown',
+          action: 'completed',
+          details: 'First aid kit inspection completed and saved',
         },
       ],
     };
@@ -530,7 +562,7 @@ const FirstAidInspection: React.FC = () => {
           ...prev.auditLog,
           {
             timestamp: new Date().toISOString(),
-            user: currentUser.name,
+            user: user?.name || 'Unknown',
             action: 'cleared_all',
             details: 'All quantities, statuses, and comments cleared',
           },
@@ -586,7 +618,7 @@ const FirstAidInspection: React.FC = () => {
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-semibold text-amber-800">Record Submitted</h3>
+                <h3 className="text-sm font-semibold text-green-800">Record Completed</h3>
                 <p className="text-sm text-amber-700 mt-1">
                   This inspection has been saved and cannot be edited. Status:{' '}
                   <span className="font-medium capitalize">
@@ -1053,7 +1085,7 @@ const FirstAidInspection: React.FC = () => {
                     <p className="text-gray-600 mt-2">
                       <strong>Once saved, this record cannot be edited.</strong>
                       <br />
-                      The inspection will be submitted for supervisor review.
+                      The inspection will be completed and saved.
                     </p>
                   </div>
                 </div>
@@ -1081,4 +1113,10 @@ const FirstAidInspection: React.FC = () => {
   );
 };
 
-export default FirstAidInspection;
+export default function ProtectedFirstAidInspection() {
+  return (
+    <ProtectedRoute requiredPermission="canCreateInspections">
+      <FirstAidInspection />
+    </ProtectedRoute>
+  );
+}

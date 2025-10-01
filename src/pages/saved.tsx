@@ -4,12 +4,7 @@ import { storage } from '@/utils/storage';
 import { exportInspectionReport } from '@/utils/reportGenerator';
 
 type InspectionType = 'hse' | 'fire_extinguisher' | 'first_aid';
-type InspectionStatus =
-  | 'draft'
-  | 'submitted'
-  | 'supervisor_approved'
-  | 'admin_approved'
-  | 'completed';
+type InspectionStatus = 'draft' | 'completed';
 
 interface SavedInspection {
   id: string;
@@ -267,12 +262,6 @@ const SavedInspections: React.FC = () => {
     switch (status) {
       case 'draft':
         return 'bg-gray-100 text-gray-800';
-      case 'submitted':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'supervisor_approved':
-        return 'bg-blue-100 text-blue-800';
-      case 'admin_approved':
-        return 'bg-green-100 text-green-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
       default:
@@ -419,9 +408,6 @@ const SavedInspections: React.FC = () => {
               >
                 <option value="">All Statuses</option>
                 <option value="draft">Draft</option>
-                <option value="submitted">Submitted</option>
-                <option value="supervisor_approved">Supervisor Approved</option>
-                <option value="admin_approved">Admin Approved</option>
                 <option value="completed">Completed</option>
               </select>
             </div>

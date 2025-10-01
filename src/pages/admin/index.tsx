@@ -1,19 +1,35 @@
-// src/pages/admin/index.tsx - Updated Admin Dashboard
+// src/pages/admin/index.tsx - Fixed Admin Dashboard
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/layouts/AdminLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { storage } from '@/utils/storage';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+
+interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalCategories: number;
+  totalChecklistItems: number;
+  totalInspections: number;
+  recentActivity: Array<{
+    id: string;
+    action: string;
+    user: string;
+    timestamp: string;
+    type: string;
+  }>;
+}
 
 const AdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState({
+  const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     activeUsers: 0,
     totalCategories: 0,
     totalChecklistItems: 0,
     totalInspections: 0,
-    pendingApprovals: 0,
-    recentActivity: [] as any[],
+    recentActivity: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -39,12 +55,6 @@ const AdminDashboard: React.FC = () => {
       const totalInspections =
         hseInspections.length + fireInspections.length + firstAidInspections.length;
 
-      // Calculate pending approvals
-      const pendingApprovals = [
-        ...hseInspections.filter((i: any) => i.status === 'submitted'),
-        ...fireInspections.filter((i: any) => i.status === 'submitted'),
-        ...firstAidInspections.filter((i: any) => i.status === 'submitted'),
-      ].length;
 
       // Generate recent activity
       const allInspections = [
@@ -68,7 +78,6 @@ const AdminDashboard: React.FC = () => {
         totalCategories: categories.length,
         totalChecklistItems: checklistItems.length,
         totalInspections,
-        pendingApprovals,
         recentActivity: allInspections,
       });
     } catch (error) {
@@ -169,17 +178,17 @@ const AdminDashboard: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
-                  <p className="text-3xl font-bold text-amber-600">{stats.pendingApprovals}</p>
-                  <p className="text-sm text-gray-600">Need review</p>
+                  <p className="text-sm font-medium text-gray-600">Active Categories</p>
+                  <p className="text-3xl font-bold text-blue-600">{stats.totalCategories}</p>
+                  <p className="text-sm text-gray-600">Inspection types</p>
                 </div>
-                <span className="text-4xl">⏳</span>
+                <span className="text-4xl">📂</span>
               </div>
               <Link
-                href="/approval-workflow"
-                className="mt-4 inline-flex items-center text-sm text-amber-600 hover:text-amber-700"
+                href="/admin/checklist-items"
+                className="mt-4 inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
               >
-                Review Now →
+                Manage Categories →
               </Link>
             </div>
           </div>
@@ -375,9 +384,10 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
-  );
+      </div>
+    </AdminLayout>
+  </ProtectedRoute>
+);
 };
 
 export default AdminDashboard;

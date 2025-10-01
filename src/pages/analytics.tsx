@@ -21,9 +21,6 @@ interface AnalyticsData {
   }[];
   statusBreakdown: {
     draft: number;
-    submitted: number;
-    supervisor_approved: number;
-    admin_approved: number;
     completed: number;
   };
 }
@@ -178,12 +175,6 @@ const AnalyticsDashboard: React.FC = () => {
       // Status breakdown
       const statusBreakdown = {
         draft: filteredInspections.filter((i: any) => i.status === 'draft').length,
-        submitted: filteredInspections.filter((i: any) => i.status === 'submitted').length,
-        supervisor_approved: filteredInspections.filter(
-          (i: any) => i.status === 'supervisor_approved',
-        ).length,
-        admin_approved: filteredInspections.filter((i: any) => i.status === 'admin_approved')
-          .length,
         completed: filteredInspections.filter((i: any) => i.status === 'completed').length,
       };
 
@@ -404,12 +395,11 @@ const AnalyticsDashboard: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
+                <p className="text-sm font-medium text-gray-600">Draft Inspections</p>
                 <p className="text-2xl font-bold text-amber-600 mt-1">
-                  {analyticsData.statusBreakdown.submitted +
-                    analyticsData.statusBreakdown.supervisor_approved}
+                  {analyticsData.statusBreakdown.draft}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Need review</p>
+                <p className="text-xs text-gray-500 mt-1">Not completed</p>
               </div>
               <div className="h-12 w-12 bg-amber-50 rounded-lg flex items-center justify-center">
                 <svg
@@ -603,10 +593,10 @@ const AnalyticsDashboard: React.FC = () => {
                     {analyticsData.completionRate < 90 && (
                       <li>Follow up on pending inspections to improve completion rates</li>
                     )}
-                    {analyticsData.statusBreakdown.submitted > 5 && (
+                    {analyticsData.statusBreakdown.draft > 5 && (
                       <li>
-                        Review approval workflow - {analyticsData.statusBreakdown.submitted}{' '}
-                        inspections awaiting supervisor review
+                        Complete draft inspections - {analyticsData.statusBreakdown.draft}{' '}
+                        inspections need to be completed
                       </li>
                     )}
                   </ul>

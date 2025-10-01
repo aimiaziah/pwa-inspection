@@ -31,11 +31,19 @@ const ChecklistItemsManagement: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal states
+  // Enhanced modal states
   const [showItemModal, setShowItemModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ChecklistItem | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  // Bulk operations
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState<
+    'activate' | 'deactivate' | 'delete' | 'change_type'
+  >('activate');
 
   // Form data
   const [itemFormData, setItemFormData] = useState({
@@ -450,6 +458,90 @@ const ChecklistItemsManagement: React.FC = () => {
     }
   };
 
+  // Bulk Operations
+  const handleSelectItem = (itemId: string) => {
+    setSelectedItems((prev) =>
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId],
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedItems.length === filteredItems.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(filteredItems.map((item) => item.id));
+    }
+  };
+
+  const handleBulkAction = () => {
+    if (selectedItems.length === 0) {
+      alert('Please select items to perform bulk action.');
+      return;
+    }
+    setShowBulkModal(true);
+  };
+
+  const executeBulkAction = () => {
+    try {
+      let updatedItems = [...items];
+
+      switch (bulkAction) {
+        case 'activate':
+          updatedItems = items.map((item) =>
+            selectedItems.includes(item.id) ? { ...item, isActive: true } : item,
+          );
+          break;
+        case 'deactivate':
+          updatedItems = items.map((item) =>
+            selectedItems.includes(item.id) ? { ...item, isActive: false } : item,
+          );
+          break;
+        case 'delete':
+          if (
+            !confirm(
+              `Are you sure you want to delete ${selectedItems.length} items? This action cannot be undone.`,
+            )
+          ) {
+            return;
+          }
+          updatedItems = items.filter((item) => !selectedItems.includes(item.id));
+          break;
+      }
+
+      storage.save('checklist_items', updatedItems);
+      setItems(updatedItems);
+      setSelectedItems([]);
+      setShowBulkModal(false);
+    } catch (error) {
+      console.error('Error performing bulk action:', error);
+      alert('Error performing bulk action. Please try again.');
+    }
+  };
+
+  const handleExportItems = () => {
+    const exportData = {
+      exportTimestamp: new Date().toISOString(),
+      categories,
+      items,
+      stats: {
+        totalItems: items.length,
+        activeItems: items.filter((i) => i.isActive).length,
+        hseItems: items.filter((i) => i.inspectionType === 'hse').length,
+        fireItems: items.filter((i) => i.inspectionType === 'fire_extinguisher').length,
+        firstAidItems: items.filter((i) => i.inspectionType === 'first_aid').length,
+      },
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+    const exportFileDefaultName = `checklist-items-${new Date().toISOString().split('T')[0]}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
   const getInspectionTypeLabel = (type: string) => {
     switch (type) {
       case 'hse':
@@ -460,6 +552,19 @@ const ChecklistItemsManagement: React.FC = () => {
         return 'First Aid Kit';
       default:
         return type;
+    }
+  };
+
+  const getInspectionTypeIcon = (type: string) => {
+    switch (type) {
+      case 'hse':
+        return '🛡️';
+      case 'fire_extinguisher':
+        return '🧯';
+      case 'first_aid':
+        return '🏥';
+      default:
+        return '📋';
     }
   };
 
@@ -476,16 +581,32 @@ const ChecklistItemsManagement: React.FC = () => {
   }
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <AdminLayout title="Checklist Management">
+    <ProtectedRoute requiredPermission="canManageForms">
+      <AdminLayout title="Forms Management">
         <div className="space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Checklist Management</h1>
-              <p className="text-gray-600">Manage inspection checklist items and categories</p>
+              <h1 className="text-3xl font-bold text-gray-900">Forms Management</h1>
+              <p className="text-gray-600">
+                Comprehensive management of inspection forms, categories, and items
+              </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={handleExportItems}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Export
+              </button>
               <button
                 onClick={handleCreateCategory}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
@@ -625,12 +746,61 @@ const ChecklistItemsManagement: React.FC = () => {
             </div>
           </div>
 
+          {/* Bulk Actions */}
+          {selectedItems.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-blue-900">
+                    {selectedItems.length} item(s) selected
+                  </span>
+                  <button
+                    onClick={() => setSelectedItems([])}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+                <button
+                  onClick={handleBulkAction}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 10h16M4 14h16M4 18h16"
+                    />
+                  </svg>
+                  Bulk Actions
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Items Table */}
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
             <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Checklist Items ({filteredItems.length})
-              </h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Checklist Items ({filteredItems.length})
+                </h3>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-600">{selectedItems.length} selected</span>
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {selectedItems.length === filteredItems.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
+              </div>
 
               {filteredItems.length === 0 ? (
                 <div className="text-center py-12">
@@ -641,6 +811,17 @@ const ChecklistItemsManagement: React.FC = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <input
+                            type="checkbox"
+                            checked={
+                              selectedItems.length === filteredItems.length &&
+                              filteredItems.length > 0
+                            }
+                            onChange={handleSelectAll}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                           Item
                         </th>
@@ -663,7 +844,20 @@ const ChecklistItemsManagement: React.FC = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50">
+                        <tr
+                          key={item.id}
+                          className={`hover:bg-gray-50 ${
+                            selectedItems.includes(item.id) ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <td className="px-6 py-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedItems.includes(item.id)}
+                              onChange={() => handleSelectItem(item.id)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                          </td>
                           <td className="px-6 py-4">
                             <div>
                               <div className="text-sm font-medium text-gray-900">{item.item}</div>
@@ -678,7 +872,12 @@ const ChecklistItemsManagement: React.FC = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {getInspectionTypeLabel(item.inspectionType)}
+                            <div className="flex items-center">
+                              <span className="mr-2">
+                                {getInspectionTypeIcon(item.inspectionType)}
+                              </span>
+                              {getInspectionTypeLabel(item.inspectionType)}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
@@ -724,7 +923,7 @@ const ChecklistItemsManagement: React.FC = () => {
             <div className="fixed inset-0 z-50 overflow-y-auto">
               <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                  <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+                  <div className="absolute inset-0 bg-gray-500 opacity-75" />
                 </div>
                 <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                   <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -840,7 +1039,7 @@ const ChecklistItemsManagement: React.FC = () => {
             <div className="fixed inset-0 z-50 overflow-y-auto">
               <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                  <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+                  <div className="absolute inset-0 bg-gray-500 opacity-75" />
                 </div>
                 <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                   <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -925,6 +1124,67 @@ const ChecklistItemsManagement: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setShowCategoryModal(false)}
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Action Modal */}
+          {showBulkModal && (
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+              <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                  <div className="absolute inset-0 bg-gray-500 opacity-75" />
+                </div>
+                <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                  <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                      Bulk Action - {selectedItems.length} item(s) selected
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Select Action
+                        </label>
+                        <select
+                          value={bulkAction}
+                          onChange={(e) => setBulkAction(e.target.value as any)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="activate">Activate Items</option>
+                          <option value="deactivate">Deactivate Items</option>
+                          <option value="delete">Delete Items</option>
+                        </select>
+                      </div>
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-sm text-yellow-800">
+                          {bulkAction === 'delete' &&
+                            'Warning: This action will permanently delete the selected items and cannot be undone.'}
+                          {bulkAction === 'activate' && 'This will activate all selected items.'}
+                          {bulkAction === 'deactivate' &&
+                            'This will deactivate all selected items.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button
+                      onClick={executeBulkAction}
+                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm ${
+                        bulkAction === 'delete'
+                          ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                          : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                      }`}
+                    >
+                      {bulkAction === 'delete' ? 'Delete Items' : 'Apply Action'}
+                    </button>
+                    <button
+                      onClick={() => setShowBulkModal(false)}
                       className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                     >
                       Cancel

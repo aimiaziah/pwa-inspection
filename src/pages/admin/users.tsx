@@ -14,11 +14,29 @@ interface UserFormData {
   status: UserStatus;
   department: string;
   permissions: {
-    canCreateInspections: boolean;
-    canApproveInspections: boolean;
-    canViewAnalytics: boolean;
+    // Admin permissions
     canManageUsers: boolean;
+    canManageRoles: boolean;
+    canManageForms: boolean;
+    canSetNotifications: boolean;
+    canManageSystem: boolean;
+    canBackupRestore: boolean;
+
+    // Inspector permissions
+    canCreateInspections: boolean;
+    canEditInspections: boolean;
+    canViewInspections: boolean;
+    canViewAnalytics: boolean;
+    canViewGoogleDriveStatus: boolean;
+    canAddDigitalSignature: boolean;
     canExportReports: boolean;
+
+    // DevSecOps permissions
+    canViewDevSecOpsDashboard: boolean;
+    canViewSecurityLogs: boolean;
+    canViewSystemErrors: boolean;
+    canTrackDataBreaches: boolean;
+    canMonitorUpdates: boolean;
     canViewAuditTrail: boolean;
   };
 }
@@ -45,11 +63,29 @@ const UserManagement: React.FC = () => {
     status: 'active',
     department: '',
     permissions: {
-      canCreateInspections: true,
-      canApproveInspections: false,
-      canViewAnalytics: false,
+      // Admin permissions
       canManageUsers: false,
-      canExportReports: false,
+      canManageRoles: false,
+      canManageForms: false,
+      canSetNotifications: false,
+      canManageSystem: false,
+      canBackupRestore: false,
+
+      // Inspector permissions
+      canCreateInspections: true,
+      canEditInspections: true,
+      canViewInspections: true,
+      canViewAnalytics: true,
+      canViewGoogleDriveStatus: true,
+      canAddDigitalSignature: true,
+      canExportReports: true,
+
+      // DevSecOps permissions
+      canViewDevSecOpsDashboard: false,
+      canViewSecurityLogs: false,
+      canViewSystemErrors: false,
+      canTrackDataBreaches: false,
+      canMonitorUpdates: false,
       canViewAuditTrail: false,
     },
   });
@@ -260,10 +296,10 @@ const UserManagement: React.FC = () => {
     switch (role) {
       case 'admin':
         return 'bg-purple-100 text-purple-800';
-      case 'supervisor':
-        return 'bg-blue-100 text-blue-800';
       case 'inspector':
         return 'bg-green-100 text-green-800';
+      case 'devsecops':
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -277,30 +313,84 @@ const UserManagement: React.FC = () => {
     switch (role) {
       case 'admin':
         return {
-          canCreateInspections: true,
-          canApproveInspections: true,
-          canViewAnalytics: true,
+          // Admin permissions
           canManageUsers: true,
-          canExportReports: true,
-          canViewAuditTrail: true,
-        };
-      case 'supervisor':
-        return {
-          canCreateInspections: true,
-          canApproveInspections: true,
+          canManageRoles: true,
+          canManageForms: true,
+          canSetNotifications: true,
+          canManageSystem: true,
+          canBackupRestore: true,
+
+          // Inspector permissions (limited access)
+          canCreateInspections: false,
+          canEditInspections: false,
+          canViewInspections: true,
           canViewAnalytics: true,
-          canManageUsers: false,
+          canViewGoogleDriveStatus: true,
+          canAddDigitalSignature: false,
           canExportReports: true,
+
+          // DevSecOps permissions (limited access)
+          canViewDevSecOpsDashboard: false,
+          canViewSecurityLogs: true,
+          canViewSystemErrors: true,
+          canTrackDataBreaches: true,
+          canMonitorUpdates: true,
           canViewAuditTrail: true,
         };
       case 'inspector':
         return {
-          canCreateInspections: true,
-          canApproveInspections: false,
-          canViewAnalytics: false,
+          // Admin permissions
           canManageUsers: false,
+          canManageRoles: false,
+          canManageForms: false,
+          canSetNotifications: false,
+          canManageSystem: false,
+          canBackupRestore: false,
+
+          // Inspector permissions
+          canCreateInspections: true,
+          canEditInspections: true,
+          canViewInspections: true,
+          canViewAnalytics: true,
+          canViewGoogleDriveStatus: true,
+          canAddDigitalSignature: true,
           canExportReports: true,
+
+          // DevSecOps permissions
+          canViewDevSecOpsDashboard: false,
+          canViewSecurityLogs: false,
+          canViewSystemErrors: false,
+          canTrackDataBreaches: false,
+          canMonitorUpdates: false,
           canViewAuditTrail: false,
+        };
+      case 'devsecops':
+        return {
+          // Admin permissions
+          canManageUsers: false,
+          canManageRoles: false,
+          canManageForms: false,
+          canSetNotifications: false,
+          canManageSystem: false,
+          canBackupRestore: false,
+
+          // Inspector permissions (limited access)
+          canCreateInspections: false,
+          canEditInspections: false,
+          canViewInspections: true,
+          canViewAnalytics: false,
+          canViewGoogleDriveStatus: false,
+          canAddDigitalSignature: false,
+          canExportReports: false,
+
+          // DevSecOps permissions
+          canViewDevSecOpsDashboard: true,
+          canViewSecurityLogs: true,
+          canViewSystemErrors: true,
+          canTrackDataBreaches: true,
+          canMonitorUpdates: true,
+          canViewAuditTrail: true,
         };
       default:
         return userFormData.permissions;
@@ -425,7 +515,6 @@ const UserManagement: React.FC = () => {
                 >
                   <option value="">All Roles</option>
                   <option value="admin">Admin</option>
-                  <option value="supervisor">Supervisor</option>
                   <option value="inspector">Inspector</option>
                 </select>
               </div>
@@ -595,7 +684,7 @@ const UserManagement: React.FC = () => {
             <div className="fixed inset-0 z-50 overflow-y-auto">
               <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                  <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+                  <div className="absolute inset-0 bg-gray-500 opacity-75" />
                 </div>
 
                 <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">

@@ -23,8 +23,12 @@ const LoginPage: React.FC = () => {
   const { login, isAuthenticated } = authHook || { login: null, isAuthenticated: false };
 
   useEffect(() => {
-    if (isAuthenticated && router) {
-      router.push('/');
+    if (isAuthenticated && router && router.isReady) {
+      // Prevent redirect loops
+      const currentPath = router.pathname;
+      if (currentPath === '/login') {
+        router.replace('/');
+      }
     }
   }, [isAuthenticated, router]);
 
@@ -56,8 +60,18 @@ const LoginPage: React.FC = () => {
 
     try {
       const success = await login(pin);
-      if (success) {
-        router.push('/');
+      if (success && authHook?.user) {
+        // Role-based redirect
+        const { user } = authHook;
+        if (user.role === 'admin') {
+          await router.replace('/admin');
+        } else if (user.role === 'inspector') {
+          await router.replace('/analytics');
+        } else if (user.role === 'devsecops') {
+          await router.replace('/devsecops');
+        } else {
+          await router.replace('/');
+        }
       } else {
         setError('Invalid PIN. Please try again.');
         setPin('');
@@ -87,8 +101,8 @@ const LoginPage: React.FC = () => {
 
   const demoUsers = [
     { name: 'Admin User', pin: '1234', role: 'admin' },
-    { name: 'Supervisor Demo', pin: '5678', role: 'supervisor' },
     { name: 'Inspector Demo', pin: '9999', role: 'inspector' },
+    { name: 'DevSecOps User', pin: '7777', role: 'devsecops' },
   ];
 
   // If auth is not available, show an error
@@ -163,6 +177,7 @@ const LoginPage: React.FC = () => {
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
                 <button
                   key={digit}
+                  type="button"
                   onClick={() => handlePinInput(digit.toString())}
                   disabled={isLoading || pin.length >= 4}
                   className="h-14 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 rounded-lg text-xl font-semibold text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -172,6 +187,7 @@ const LoginPage: React.FC = () => {
               ))}
 
               <button
+                type="button"
                 onClick={handleDelete}
                 disabled={isLoading || pin.length === 0}
                 className="h-14 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 rounded-lg text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
@@ -187,6 +203,7 @@ const LoginPage: React.FC = () => {
               </button>
 
               <button
+                type="button"
                 onClick={() => handlePinInput('0')}
                 disabled={isLoading || pin.length >= 4}
                 className="h-14 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 rounded-lg text-xl font-semibold text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -195,12 +212,13 @@ const LoginPage: React.FC = () => {
               </button>
 
               <button
+                type="button"
                 onClick={handleSubmit}
                 disabled={isLoading || pin.length !== 4}
                 className="h-14 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isLoading ? (
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" />
                 ) : (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path

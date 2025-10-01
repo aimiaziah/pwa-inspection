@@ -1,5 +1,6 @@
 // src/pages/index.tsx
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import BaseLayout from '@/layouts/BaseLayout';
 import RoleBasedComponent from '@/components/RoleBasedComponent';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,7 +9,6 @@ import Link from 'next/link';
 
 interface DashboardStats {
   totalInspections: number;
-  pendingApprovals: number;
   criticalIssues: number;
   complianceRate: number;
   inspectionsByType: {
@@ -31,10 +31,10 @@ interface DashboardStats {
 }
 
 const DashboardPage: React.FC = () => {
+  const router = useRouter();
   const { user, hasPermission, isRole } = useAuth();
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     totalInspections: 0,
-    pendingApprovals: 0,
     criticalIssues: 0,
     complianceRate: 0,
     inspectionsByType: { hse: 0, fire_extinguisher: 0, first_aid: 0 },
@@ -73,16 +73,6 @@ const DashboardPage: React.FC = () => {
       );
 
       const totalInspections = filteredInspections.length;
-
-      // Calculate pending approvals (only visible to supervisors and admins)
-      let pendingApprovals = 0;
-      if (hasPermission('canApproveInspections')) {
-        pendingApprovals = filteredInspections.filter(
-          (inspection: any) =>
-            inspection.status === 'submitted' ||
-            (inspection.status === 'supervisor_approved' && isRole('admin')),
-        ).length;
-      }
 
       // Calculate critical issues
       const criticalIssues = filteredInspections.reduce((count: number, inspection: any) => {
@@ -139,14 +129,6 @@ const DashboardPage: React.FC = () => {
         }
       }
 
-      if (hasPermission('canApproveInspections') && pendingApprovals > 0) {
-        upcomingTasks.push({
-          task: `Review ${pendingApprovals} pending inspection(s)`,
-          dueDate: new Date().toISOString().split('T')[0],
-          priority: 'high',
-        });
-      }
-
       if (criticalIssues > 0) {
         upcomingTasks.push({
           task: `Address ${criticalIssues} critical safety issue(s)`,
@@ -164,7 +146,6 @@ const DashboardPage: React.FC = () => {
 
       setDashboardStats({
         totalInspections,
-        pendingApprovals,
         criticalIssues,
         complianceRate,
         inspectionsByType,
@@ -206,7 +187,7 @@ const DashboardPage: React.FC = () => {
       <BaseLayout title="Dashboard">
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
             <span className="text-gray-600">Loading dashboard...</span>
           </div>
         </div>
@@ -305,35 +286,6 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-
-          <RoleBasedComponent permissions={['canApproveInspections']}>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
-                  <p className="text-2xl font-bold text-amber-600 mt-1">
-                    {dashboardStats.pendingApprovals}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">Awaiting review</p>
-                </div>
-                <div className="h-12 w-12 bg-amber-50 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="h-6 w-6 text-amber-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </RoleBasedComponent>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
@@ -439,30 +391,6 @@ const DashboardPage: React.FC = () => {
                   </svg>
                 </div>
                 <span className="text-sm font-medium text-gray-900">Fire Extinguisher</span>
-              </Link>
-            </RoleBasedComponent>
-
-            <RoleBasedComponent permissions={['canApproveInspections']}>
-              <Link
-                href="/approval-workflow"
-                className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors group"
-              >
-                <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-green-200">
-                  <svg
-                    className="h-4 w-4 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <span className="text-sm font-medium text-gray-900">Review Approvals</span>
               </Link>
             </RoleBasedComponent>
 
@@ -651,7 +579,7 @@ const DashboardPage: React.FC = () => {
                         className={`h-2 w-2 rounded-full mt-2 ${getPriorityColor(task.priority)
                           .replace('text-', 'bg-')
                           .replace('bg-', 'bg-')}`}
-                      ></div>
+                      />
                     </div>
                     <div className="ml-3 min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900">{task.task}</p>

@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import BaseLayout from '@/layouts/BaseLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import SignatureCanvas from '@/components/SignatureCanvas';
 import { storage } from '@/utils/storage';
+import { useAuth } from '@/hooks/useAuth';
 
 type RatingType = 'PASS' | 'FAIL' | 'N/A' | null;
-type InspectionStatus =
-  | 'draft'
-  | 'submitted'
-  | 'supervisor_approved'
-  | 'admin_approved'
-  | 'completed';
-type UserRole = 'inspector' | 'supervisor' | 'admin';
+type InspectionStatus = 'draft' | 'completed';
+type UserRole = 'inspector' | 'admin';
 
 interface FireExtinguisherItem {
   id: string;
@@ -34,6 +32,7 @@ interface FireExtinguisherData {
   inspectionDate: string;
   status: InspectionStatus;
   items: FireExtinguisherItem[];
+  signature?: string;
   auditLog: Array<{
     timestamp: string;
     user: string;
@@ -45,10 +44,45 @@ interface FireExtinguisherData {
 }
 
 const FireExtinguisherInspection: React.FC = () => {
-  const [currentUser] = useState<{ name: string; role: UserRole }>({
-    name: 'John Inspector',
-    role: 'inspector',
-  });
+  const { user, hasPermission, isRole } = useAuth();
+
+  // Check if user can create inspections and is not an admin
+  const canFillInspection = hasPermission('canCreateInspections') && !isRole('admin');
+
+  if (!canFillInspection) {
+    return (
+      <BaseLayout title="Fire Extinguisher Inspection">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <div className="mb-4">
+              <svg
+                className="mx-auto h-12 w-12 text-red-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0l-8.898 12c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-red-800 mb-2">Access Restricted</h3>
+            <p className="text-red-700 mb-4">
+              {isRole('admin')
+                ? 'Administrators cannot fill inspection forms. This is reserved for inspectors.'
+                : 'You do not have permission to create inspections. Please contact your administrator.'}
+            </p>
+            <p className="text-sm text-red-600">
+              Current role: <span className="font-medium">{user?.role}</span>
+            </p>
+          </div>
+        </div>
+      </BaseLayout>
+    );
+  }
 
   const [inspectionData, setInspectionData] = useState<FireExtinguisherData>({
     id: Date.now().toString(),
@@ -60,14 +94,14 @@ const FireExtinguisherInspection: React.FC = () => {
     manufacturerDate: '',
     lastServiceDate: '',
     nextServiceDue: '',
-    inspectedBy: currentUser.name,
+    inspectedBy: user?.name || '',
     inspectionDate: new Date().toISOString().split('T')[0],
     status: 'draft',
     createdAt: new Date().toISOString(),
     auditLog: [
       {
         timestamp: new Date().toISOString(),
-        user: currentUser.name,
+        user: user?.name || 'Unknown',
         action: 'created',
         details: 'Fire extinguisher inspection record created',
       },
@@ -265,6 +299,7 @@ const FireExtinguisherInspection: React.FC = () => {
 
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
 
   // Extinguisher types
   const extinguisherTypes = [
@@ -295,7 +330,7 @@ const FireExtinguisherInspection: React.FC = () => {
         ...prev.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
+          user: user?.name || 'Unknown',
           action: 'rating_changed',
           details: `Rating changed for item ${itemId} to ${rating}`,
         },
@@ -314,7 +349,7 @@ const FireExtinguisherInspection: React.FC = () => {
         ...prev.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
+          user: user?.name || 'Unknown',
           action: 'comment_changed',
           details: `Comment updated for item ${itemId}`,
         },
@@ -333,7 +368,7 @@ const FireExtinguisherInspection: React.FC = () => {
         ...prev.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
+          user: user?.name || 'Unknown',
           action: 'header_changed',
           details: `${field} changed to ${value}`,
         },
@@ -376,22 +411,54 @@ const FireExtinguisherInspection: React.FC = () => {
       return;
     }
 
+    if (!inspectionData.signature) {
+      setSaveError('Please add your digital signature before submitting.');
+      setShowSignatureModal(true);
+      return;
+    }
+
     setShowSaveConfirmation(true);
+  };
+
+  // Signature handlers
+  const handleSaveSignature = (signatureDataUrl: string) => {
+    setInspectionData((prev) => ({
+      ...prev,
+      signature: signatureDataUrl,
+      auditLog: [
+        ...prev.auditLog,
+        {
+          timestamp: new Date().toISOString(),
+          user: user?.name || 'Unknown',
+          action: 'signature_added',
+          details: 'Digital signature added to inspection',
+        },
+      ],
+    }));
+    setShowSignatureModal(false);
+    setSaveError(null);
+  };
+
+  const handleClearSignature = () => {
+    setInspectionData((prev) => ({
+      ...prev,
+      signature: undefined,
+    }));
   };
 
   // Confirm save
   const confirmSave = () => {
     const savedInspection = {
       ...inspectionData,
-      status: 'submitted' as InspectionStatus,
+      status: 'completed' as InspectionStatus,
       savedAt: new Date().toISOString(),
       auditLog: [
         ...inspectionData.auditLog,
         {
           timestamp: new Date().toISOString(),
-          user: currentUser.name,
-          action: 'submitted',
-          details: 'Fire extinguisher inspection submitted for review',
+          user: user?.name || 'Unknown',
+          action: 'completed',
+          details: 'Fire extinguisher inspection completed and saved',
         },
       ],
     };
@@ -423,7 +490,7 @@ const FireExtinguisherInspection: React.FC = () => {
           ...prev.auditLog,
           {
             timestamp: new Date().toISOString(),
-            user: currentUser.name,
+            user: user?.name || 'Unknown',
             action: 'cleared_all',
             details: 'All ratings and comments cleared',
           },
@@ -471,7 +538,7 @@ const FireExtinguisherInspection: React.FC = () => {
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-semibold text-amber-800">Record Submitted</h3>
+                <h3 className="text-sm font-semibold text-green-800">Record Completed</h3>
                 <p className="text-sm text-amber-700 mt-1">
                   This inspection has been saved and cannot be edited. Status:{' '}
                   <span className="font-medium capitalize">
@@ -812,6 +879,49 @@ const FireExtinguisherInspection: React.FC = () => {
           ))}
         </div>
 
+        {/* Digital Signature Section */}
+        {isEditable && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Digital Signature</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Please add your digital signature to certify this inspection.
+            </p>
+
+            {inspectionData.signature ? (
+              <div className="space-y-3">
+                <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <img
+                    src={inspectionData.signature}
+                    alt="Inspector Signature"
+                    className="max-w-full h-32 mx-auto"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowSignatureModal(true)}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Update Signature
+                  </button>
+                  <button
+                    onClick={handleClearSignature}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowSignatureModal(true)}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Add Signature
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="mt-8 mb-8">
           {isEditable ? (
@@ -891,7 +1001,7 @@ const FireExtinguisherInspection: React.FC = () => {
                     <p className="text-gray-600 mt-2">
                       <strong>Once saved, this record cannot be edited.</strong>
                       <br />
-                      The inspection will be submitted for supervisor review.
+                      The inspection will be completed and saved.
                     </p>
                   </div>
                 </div>
@@ -914,9 +1024,37 @@ const FireExtinguisherInspection: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Signature Modal */}
+        {showSignatureModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full mx-4">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Digital Signature</h3>
+                <SignatureCanvas
+                  onSave={handleSaveSignature}
+                  onClear={() => {}}
+                  existingSignature={inspectionData.signature}
+                />
+                <button
+                  onClick={() => setShowSignatureModal(false)}
+                  className="mt-4 w-full px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </BaseLayout>
   );
 };
 
-export default FireExtinguisherInspection;
+export default function ProtectedFireExtinguisherInspection() {
+  return (
+    <ProtectedRoute requiredPermission="canCreateInspections">
+      <FireExtinguisherInspection />
+    </ProtectedRoute>
+  );
+}
